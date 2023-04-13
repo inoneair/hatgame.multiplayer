@@ -1,7 +1,7 @@
 
 {
-  "name": "ru.inoneair.hatgame.multiplayer.core",
-  "displayName": "Hatgame.Multiplayer.Core",
+  "name": "hatgame.multiplayer",
+  "displayName": "Hatgame.Multiplayer",
   "version": "0.0.1",
   "unity": "2022.2",
   "description": "Набор классов для создания игры по сети в Hatgame",
