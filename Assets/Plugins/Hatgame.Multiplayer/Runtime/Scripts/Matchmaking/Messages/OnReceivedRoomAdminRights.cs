@@ -2,5 +2,5 @@ using Mirror;
 
 namespace Hatgame.Multiplayer
 {
-    public struct OnReceivedRoomAdminRights : NetworkMessage { }
+    public struct OnReceivedLobbyAdminRights : NetworkMessage { }
 }

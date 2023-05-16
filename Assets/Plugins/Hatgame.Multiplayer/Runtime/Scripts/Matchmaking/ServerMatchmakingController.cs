@@ -15,13 +15,13 @@ namespace Hatgame.Multiplayer
 
         public ServerMatchmakingController(NetworkController networkController, MatchmakingSettings settings)
         {
-            _matchmakingData = new ServerMatchmakingData(settings.maxPlayersPerRoom, settings.maxRoomCount);
+            _matchmakingData = new ServerMatchmakingData(settings.maxPlayersPerLobby, settings.maxLobbyCount);
             _networkController = networkController;
             _networkController.RegisterOnServerConnect(OnServerConnectHandler);
             _networkController.RegisterOnServerDisconnect(OnServerDisconnectHandler);
-            _networkController.RegisterServerOnReceiveMessage<RequestCreateRoomMessage>(OnRequestCreateRoomMessageHandler);
-            _networkController.RegisterServerOnReceiveMessage<RequestJoinRoomMessage>(OnRequestJoinRoomMessageHandler);
-            _networkController.RegisterServerOnReceiveMessage<RequestLeaveRoomMessage>(OnRequestLeaveRoomMessageHandler);
+            _networkController.RegisterServerOnReceiveMessage<RequestCreateLobbyMessage>(OnRequestCreateLobbyMessageHandler);
+            _networkController.RegisterServerOnReceiveMessage<RequestJoinLobbyMessage>(OnRequestJoinLobbyMessageHandler);
+            _networkController.RegisterServerOnReceiveMessage<RequestLeaveLobbyMessage>(OnRequestLeaveLobbyMessageHandler);
             _networkController.RegisterServerOnReceiveMessage<RequestChangePlayerNameMessage>(OnRequestChangePlayerNameMessageHandler);
         }
 
@@ -38,75 +38,75 @@ namespace Hatgame.Multiplayer
         {
             if (_connectionToPlayerId.TryGetValue(connection.connectionId, out var playerId))
             {
-                OnPlayerLeaveRoomHandler(playerId);
+                OnPlayerLeaveLobbyHandler(playerId);
                 _matchmakingData.RemovePlayer(playerId);
                 _connectionToPlayerId.Remove(connection.connectionId);
                 _playerIdToConnection.Remove(playerId);
             }
         }
 
-        private void OnRequestCreateRoomMessageHandler(NetworkConnectionToClient connection, RequestCreateRoomMessage message)
+        private void OnRequestCreateLobbyMessageHandler(NetworkConnectionToClient connection, RequestCreateLobbyMessage message)
         {
             bool isSuccess = false;
             if (_connectionToPlayerId.TryGetValue(connection.connectionId, out var playerId))
-                isSuccess = _matchmakingData.CreateRoom(message.roomName, playerId);
+                isSuccess = _matchmakingData.CreateLobby(message.lobbyName, playerId);
 
-            _networkController.SendMessageToClient(connection, new AnswerCreateRoomMessage { isSuccess = isSuccess });
+            _networkController.SendMessageToClient(connection, new AnswerCreateLobbyMessage { isSuccess = isSuccess });
         }
 
-        private void OnRequestJoinRoomMessageHandler(NetworkConnectionToClient connection, RequestJoinRoomMessage message)
+        private void OnRequestJoinLobbyMessageHandler(NetworkConnectionToClient connection, RequestJoinLobbyMessage message)
         {
             bool isSuccess = false;
             if (_connectionToPlayerId.TryGetValue(connection.connectionId, out var playerId))
             {
-                isSuccess = _matchmakingData.AddPlayerToRoom(playerId, message.roomName);
+                isSuccess = _matchmakingData.AddPlayerToLobby(playerId, message.lobbyName);
                 if (isSuccess)
                 {
                     var joinedPlayer = _matchmakingData.GetPlayer(playerId).Value;
-                    var roomPlayers = _matchmakingData.GetRoomPlayers(message.roomName);
-                    var onOtherPlayerJoinRoomMessage = new OnOtherPlayerJoinRoomMessage { playerId = joinedPlayer.id, playerName = joinedPlayer.name };
-                    foreach (var roomPlayer in roomPlayers)
+                    var lobbyPlayers = _matchmakingData.GetLobbyPlayers(message.lobbyName);
+                    var onOtherPlayerJoinLobbyMessage = new OnOtherPlayerJoinLobbyMessage { playerId = joinedPlayer.id, playerName = joinedPlayer.name };
+                    foreach (var player in lobbyPlayers)
                     {
-                        if (roomPlayer != joinedPlayer.id)
-                            _networkController.SendMessageToClient(_playerIdToConnection[roomPlayer], onOtherPlayerJoinRoomMessage);
+                        if (player != joinedPlayer.id)
+                            _networkController.SendMessageToClient(_playerIdToConnection[player], onOtherPlayerJoinLobbyMessage);
                     }
                 }
             }
 
-            _networkController.SendMessageToClient(connection, new AnswerJoinRoomMessage { isSuccess = isSuccess });
+            _networkController.SendMessageToClient(connection, new AnswerJoinLobbyMessage { isSuccess = isSuccess });
         }
 
-        private void OnRequestLeaveRoomMessageHandler(NetworkConnectionToClient connection, RequestLeaveRoomMessage message)
+        private void OnRequestLeaveLobbyMessageHandler(NetworkConnectionToClient connection, RequestLeaveLobbyMessage message)
         {
             bool isSuccess = false;
             if (_connectionToPlayerId.TryGetValue(connection.connectionId, out var playerId))
-                isSuccess = OnPlayerLeaveRoomHandler(playerId);
+                isSuccess = OnPlayerLeaveLobbyHandler(playerId);
 
-            _networkController.SendMessageToClient(connection, new AnswerLeaveRoomMessage { isSuccess = isSuccess });
+            _networkController.SendMessageToClient(connection, new AnswerLeaveLobbyMessage { isSuccess = isSuccess });
         }
 
-        private bool OnPlayerLeaveRoomHandler(uint playerId)
+        private bool OnPlayerLeaveLobbyHandler(uint playerId)
         {
             var player = _matchmakingData.GetPlayer(playerId);
-            if (player != null && !string.IsNullOrEmpty(player.Value.roomName))
+            if (player != null && !string.IsNullOrEmpty(player.Value.lobbyName))
             {
                 var isAdmin = false;
-                if (_matchmakingData.TryGetRoomAdmin(player.Value.roomName, out uint adminId))
+                if (_matchmakingData.TryGetLobbyAdmin(player.Value.lobbyName, out uint adminId))
                     isAdmin = playerId == adminId;
 
-                var isLeaveSuccess = _matchmakingData.RemovePlayerFromRoom(playerId);
-                var roomPlayers = _matchmakingData.GetRoomPlayers(player.Value.roomName);
-                if (roomPlayers.Length > 0)
+                var isLeaveSuccess = _matchmakingData.RemovePlayerFromLobby(playerId);
+                var lobbyPlayers = _matchmakingData.GetLobbyPlayers(player.Value.lobbyName);
+                if (lobbyPlayers.Length > 0)
                 {
-                    var message = new OnOtherPlayerLeaveRoomMessage { playerId = playerId };
-                    foreach (var roomPlayer in roomPlayers)
-                        _networkController.SendMessageToClient(_playerIdToConnection[roomPlayer], message);
+                    var message = new OnOtherPlayerLeaveLobbyMessage { playerId = playerId };
+                    foreach (var lobbyPlayer in lobbyPlayers)
+                        _networkController.SendMessageToClient(_playerIdToConnection[lobbyPlayer], message);
                 }
 
-                if (isLeaveSuccess && isAdmin && _matchmakingData.TryGetRoomAdmin(player.Value.name, out uint newAdminId))
+                if (isLeaveSuccess && isAdmin && _matchmakingData.TryGetLobbyAdmin(player.Value.name, out uint newAdminId))
                 {
                     if (_playerIdToConnection.TryGetValue(newAdminId, out int newAdminConnection))
-                        _networkController.SendMessageToClient(newAdminConnection, new OnReceivedRoomAdminRights());
+                        _networkController.SendMessageToClient(newAdminConnection, new OnReceivedLobbyAdminRights());
                 }
 
                 return isLeaveSuccess;
@@ -124,16 +124,16 @@ namespace Hatgame.Multiplayer
                 if (isSuccess)
                 {
                     var player = _matchmakingData.GetPlayer(playerId);
-                    if (!string.IsNullOrWhiteSpace(player.Value.roomName))
+                    if (!string.IsNullOrWhiteSpace(player.Value.lobbyName))
                     {
-                        var roomPlayers = _matchmakingData.GetRoomPlayers(player.Value.roomName);
-                        if (roomPlayers.Length > 0)
+                        var lobbyPlayers = _matchmakingData.GetLobbyPlayers(player.Value.lobbyName);
+                        if (lobbyPlayers.Length > 0)
                         {
                             var onOtherPlayerChangeNameMessage = new OnOtherPlayerChangeNameMessage { playerId = playerId, newPlayerName = message.newPlayerName };
-                            foreach (var roomPlayer in roomPlayers)
+                            foreach (var lobbyPlayer in lobbyPlayers)
                             {
-                                if (roomPlayer != playerId)
-                                    _networkController.SendMessageToClient(_playerIdToConnection[roomPlayer], onOtherPlayerChangeNameMessage);
+                                if (lobbyPlayer != playerId)
+                                    _networkController.SendMessageToClient(_playerIdToConnection[lobbyPlayer], onOtherPlayerChangeNameMessage);
                             }
                         }
                     }

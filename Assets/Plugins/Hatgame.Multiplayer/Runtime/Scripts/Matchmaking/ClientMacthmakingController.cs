@@ -11,9 +11,9 @@ namespace Hatgame.Multiplayer
         private NetworkController _networkController;
 
         private event Action<AnswerStartGameMessage> _onAnswerStartGameReceived;
-        private event Action<AnswerCreateRoomMessage> _onAnswerCreateRoomReceived;
-        private event Action<AnswerJoinRoomMessage> _onAnswerJoinRoomReceived;
-        private event Action<AnswerLeaveRoomMessage> _onAnswerLeaveRoomReceived;
+        private event Action<AnswerCreateLobbyMessage> _onAnswerCreateLobbyReceived;
+        private event Action<AnswerJoinLobbyMessage> _onAnswerJoinLobbyReceived;
+        private event Action<AnswerLeaveLobbyMessage> _onAnswerLeaveLobbyReceived;
         private event Action<AnswerChangePlayerNameMessage> _onAnswerChangePlayerNameReceived;
 
         public ClientMacthmakingController(NetworkController networkController)
@@ -23,16 +23,16 @@ namespace Hatgame.Multiplayer
 
             _networkController.RegisterOnClientDisconnect(OnClientDisconnectHandler);
             _networkController.RegisterClientOnReceiveMessage<OnPlayerConnectedMessage>(OnPlayerConnectedMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<OnReceivedRoomAdminRights>(OnReceivedRoomAdminRights);
+            _networkController.RegisterClientOnReceiveMessage<OnReceivedLobbyAdminRights>(OnReceivedLobbyAdminRights);
 
             _networkController.RegisterClientOnReceiveMessage<AnswerStartGameMessage>(OnAnswerStartGameMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<AnswerCreateRoomMessage>(OnAnswerCreateRoomMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<AnswerJoinRoomMessage>(OnAnswerJoinRoomMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<AnswerLeaveRoomMessage>(OnAnswerLeaveRoomMessageHandler);
+            _networkController.RegisterClientOnReceiveMessage<AnswerCreateLobbyMessage>(OnAnswerCreateLobbyMessageHandler);
+            _networkController.RegisterClientOnReceiveMessage<AnswerJoinLobbyMessage>(OnAnswerJoinLobbyMessageHandler);
+            _networkController.RegisterClientOnReceiveMessage<AnswerLeaveLobbyMessage>(OnAnswerLeaveLobbyMessageHandler);
             _networkController.RegisterClientOnReceiveMessage<AnswerChangePlayerNameMessage>(OnAnswerChangePlayerNameMessageHandler);
 
-            _networkController.RegisterClientOnReceiveMessage<OnOtherPlayerJoinRoomMessage>(OnOtherPlayerJoinRoomMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<OnOtherPlayerLeaveRoomMessage>(OnOtherPlayerLeaveRoomMessageHandler);
+            _networkController.RegisterClientOnReceiveMessage<OnOtherPlayerJoinLobbyMessage>(OnOtherPlayerJoinLobbyMessageHandler);
+            _networkController.RegisterClientOnReceiveMessage<OnOtherPlayerLeaveLobbyMessage>(OnOtherPlayerLeaveLobbyMessageHandler);
             _networkController.RegisterClientOnReceiveMessage<OnOtherPlayerChangeNameMessage>(OnOtherPlayerChangeNameMessageHandler);
             _networkController.RegisterClientOnReceiveMessage<OnAdminStartGameMessage>(OnAdminStartGameMessageHandler);
         }
@@ -62,26 +62,26 @@ namespace Hatgame.Multiplayer
             return isSuccess;
         }
 
-        public async Task<bool> CreateRoom(string roomName)
+        public async Task<bool> CreateLobby(string lobbyName)
         {
-            _networkController.SendMessageToServer(new RequestCreateRoomMessage { roomName = roomName });
+            _networkController.SendMessageToServer(new RequestCreateLobbyMessage { lobbyName = lobbyName });
 
             bool isSuccess = false;
             bool answerReceived = false;
-            Action<AnswerCreateRoomMessage> onAnswerReceivedHandler = null;
-            onAnswerReceivedHandler = (answerCreateRoomMessage) =>
+            Action<AnswerCreateLobbyMessage> onAnswerReceivedHandler = null;
+            onAnswerReceivedHandler = (answerCreateLobbyMessage) =>
             {
-                if (answerCreateRoomMessage.isSuccess)
+                if (answerCreateLobbyMessage.isSuccess)
                 {
                     isSuccess = true;
-                    _matchmakingData.currentRoom = roomName;
+                    _matchmakingData.currentLobby = lobbyName;
                     _matchmakingData.isAdmin = true;
                 }
 
-                _onAnswerCreateRoomReceived -= onAnswerReceivedHandler;
+                _onAnswerCreateLobbyReceived -= onAnswerReceivedHandler;
                 answerReceived = true;
             };
-            _onAnswerCreateRoomReceived += onAnswerReceivedHandler;
+            _onAnswerCreateLobbyReceived += onAnswerReceivedHandler;
 
             while (_networkController.isNetworkActive && answerReceived)
                 await Task.Yield();
@@ -89,29 +89,29 @@ namespace Hatgame.Multiplayer
             return isSuccess;
         }
 
-        public async Task<bool> JoinRoom(string roomName)
+        public async Task<bool> JoinLobby(string lobbyName)
         {
-            _networkController.SendMessageToServer(new RequestJoinRoomMessage { roomName = roomName });
+            _networkController.SendMessageToServer(new RequestJoinLobbyMessage { lobbyName = lobbyName });
 
             bool isSuccess = false;
             bool answerReceived = false;
-            Action<AnswerJoinRoomMessage> onAnswerReceivedHandler = null;
-            onAnswerReceivedHandler = (answerJoinRoomMessage) =>
+            Action<AnswerJoinLobbyMessage> onAnswerReceivedHandler = null;
+            onAnswerReceivedHandler = (answerJoinLobbyMessage) =>
             {
-                if (answerJoinRoomMessage.isSuccess)
+                if (answerJoinLobbyMessage.isSuccess)
                 {
                     isSuccess = true;
-                    foreach (var roomPlayer in answerJoinRoomMessage.roomPlayers)
-                        _matchmakingData.AddOtherPlayerToRoom(roomPlayer);
+                    foreach (var player in answerJoinLobbyMessage.players)
+                        _matchmakingData.AddOtherPlayerToLobby(player);
 
-                    _matchmakingData.currentRoom = roomName;
+                    _matchmakingData.currentLobby = lobbyName;
                     _matchmakingData.isAdmin = true;
                 }
 
-                _onAnswerJoinRoomReceived -= onAnswerReceivedHandler;
+                _onAnswerJoinLobbyReceived -= onAnswerReceivedHandler;
                 answerReceived = true;
             };
-            _onAnswerJoinRoomReceived += onAnswerReceivedHandler;
+            _onAnswerJoinLobbyReceived += onAnswerReceivedHandler;
 
             while (_networkController.isNetworkActive && answerReceived)
                 await Task.Yield();
@@ -119,26 +119,26 @@ namespace Hatgame.Multiplayer
             return isSuccess;
         }
 
-        public async Task<bool> LeaveRoom()
+        public async Task<bool> LeaveLobby()
         {
-            _networkController.SendMessageToServer(new RequestLeaveRoomMessage());
+            _networkController.SendMessageToServer(new RequestLeaveLobbyMessage());
 
             bool isSuccess = false;
             bool answerReceived = false;
-            Action<AnswerLeaveRoomMessage> onAnswerReceivedHandler = null;
-            onAnswerReceivedHandler = (answerLeaveRoomMessage) =>
+            Action<AnswerLeaveLobbyMessage> onAnswerReceivedHandler = null;
+            onAnswerReceivedHandler = (answerLeaveLobbyMessage) =>
             {
-                if (answerLeaveRoomMessage.isSuccess)
+                if (answerLeaveLobbyMessage.isSuccess)
                 {
                     isSuccess = true;
-                    _matchmakingData.currentRoom = string.Empty;
-                    _matchmakingData.ClearOtherRoomPlayers();
+                    _matchmakingData.currentLobby = string.Empty;
+                    _matchmakingData.ClearOtherLobbyPlayers();
                 }
 
-                _onAnswerLeaveRoomReceived -= onAnswerReceivedHandler;
+                _onAnswerLeaveLobbyReceived -= onAnswerReceivedHandler;
                 answerReceived = true;
             };
-            _onAnswerLeaveRoomReceived += onAnswerReceivedHandler;
+            _onAnswerLeaveLobbyReceived += onAnswerReceivedHandler;
 
             while (_networkController.isNetworkActive && answerReceived)
                 await Task.Yield();
@@ -153,9 +153,9 @@ namespace Hatgame.Multiplayer
             bool isSuccess = false;
             bool answerReceived = false;
             Action<AnswerChangePlayerNameMessage> onAnswerReceivedHandler = null;
-            onAnswerReceivedHandler = (answerLeaveRoomMessage) =>
+            onAnswerReceivedHandler = (answerLeaveLobbyMessage) =>
             {
-                if (answerLeaveRoomMessage.isSuccess)
+                if (answerLeaveLobbyMessage.isSuccess)
                 {
                     isSuccess = true;
                     var player = _matchmakingData.player;
@@ -180,7 +180,7 @@ namespace Hatgame.Multiplayer
         private void OnPlayerConnectedMessageHandler(OnPlayerConnectedMessage message) =>
             _matchmakingData.player = message.player;
 
-        private void OnReceivedRoomAdminRights(OnReceivedRoomAdminRights message)
+        private void OnReceivedLobbyAdminRights(OnReceivedLobbyAdminRights message)
         {
             _matchmakingData.isAdmin = true;
         }
@@ -188,26 +188,26 @@ namespace Hatgame.Multiplayer
         private void OnAnswerStartGameMessageHandler(AnswerStartGameMessage message) =>
             _onAnswerStartGameReceived?.Invoke(message);
 
-        private void OnAnswerCreateRoomMessageHandler(AnswerCreateRoomMessage message) =>
-            _onAnswerCreateRoomReceived?.Invoke(message);
+        private void OnAnswerCreateLobbyMessageHandler(AnswerCreateLobbyMessage message) =>
+            _onAnswerCreateLobbyReceived?.Invoke(message);
 
-        private void OnAnswerJoinRoomMessageHandler(AnswerJoinRoomMessage message) =>
-            _onAnswerJoinRoomReceived?.Invoke(message);
+        private void OnAnswerJoinLobbyMessageHandler(AnswerJoinLobbyMessage message) =>
+            _onAnswerJoinLobbyReceived?.Invoke(message);
 
-        private void OnAnswerLeaveRoomMessageHandler(AnswerLeaveRoomMessage message) =>
-            _onAnswerLeaveRoomReceived?.Invoke(message);
+        private void OnAnswerLeaveLobbyMessageHandler(AnswerLeaveLobbyMessage message) =>
+            _onAnswerLeaveLobbyReceived?.Invoke(message);
 
         private void OnAnswerChangePlayerNameMessageHandler(AnswerChangePlayerNameMessage message) =>
             _onAnswerChangePlayerNameReceived?.Invoke(message);
 
-        private void OnOtherPlayerJoinRoomMessageHandler(OnOtherPlayerJoinRoomMessage message)
+        private void OnOtherPlayerJoinLobbyMessageHandler(OnOtherPlayerJoinLobbyMessage message)
         {
-            _matchmakingData.AddOtherPlayerToRoom(new MatchmakingPlayer { id = message.playerId, name = message.playerName, roomName = _matchmakingData.currentRoom });
+            _matchmakingData.AddOtherPlayerToLobby(new MatchmakingPlayer { id = message.playerId, name = message.playerName, lobbyName = _matchmakingData.currentLobby });
         }
 
-        private void OnOtherPlayerLeaveRoomMessageHandler(OnOtherPlayerLeaveRoomMessage message)
+        private void OnOtherPlayerLeaveLobbyMessageHandler(OnOtherPlayerLeaveLobbyMessage message)
         {
-            _matchmakingData.RemoveOtherPlayerFromRoom(message.playerId);
+            _matchmakingData.RemoveOtherPlayerFromLobby(message.playerId);
         }
 
         private void OnOtherPlayerChangeNameMessageHandler(OnOtherPlayerChangeNameMessage message)

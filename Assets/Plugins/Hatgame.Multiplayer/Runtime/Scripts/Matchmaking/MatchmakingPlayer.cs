@@ -7,6 +7,6 @@ namespace Hatgame.Multiplayer
     {
         public uint id;
         public string name;
-        public string roomName;
+        public string lobbyName;
     }
 }

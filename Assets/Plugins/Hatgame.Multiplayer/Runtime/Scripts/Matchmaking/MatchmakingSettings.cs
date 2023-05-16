@@ -5,7 +5,7 @@ namespace Hatgame.Multiplayer
     [Serializable]
     public struct MatchmakingSettings
     {
-        public int maxRoomCount;
-        public int maxPlayersPerRoom;
+        public int maxLobbyCount;
+        public int maxPlayersPerLobby;
     }
 }

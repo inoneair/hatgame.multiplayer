@@ -2,7 +2,7 @@ using Mirror;
 
 namespace Hatgame.Multiplayer
 {
-    public struct AnswerCreateRoomMessage : NetworkMessage
+    public struct AnswerCreateLobbyMessage : NetworkMessage
     {
         public bool isSuccess;
     }

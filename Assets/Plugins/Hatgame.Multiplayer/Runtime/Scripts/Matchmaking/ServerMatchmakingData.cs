@@ -5,39 +5,39 @@ namespace Hatgame.Multiplayer
 {
     public class ServerMatchmakingData
     {
-        private int _maxPlayersPreRoom;
-        private int _maxRoomCount;
+        private int _maxPlayersPerLobby;
+        private int _maxLobbyCount;
 
         private uint _lastPlayerId = 1;
 
-        private Dictionary<string, MatchmakingRoom> _rooms = new Dictionary<string, MatchmakingRoom>();
+        private Dictionary<string, MatchmakingLobby> _lobbies = new Dictionary<string, MatchmakingLobby>();
         private Dictionary<uint, MatchmakingPlayer> _players = new Dictionary<uint, MatchmakingPlayer>();
 
-        public ServerMatchmakingData(int maxPlayersPerRoom, int maxRoomCount)
+        public ServerMatchmakingData(int maxPlayersPerLobby, int maxLobbyCount)
         {
-            _maxPlayersPreRoom = maxPlayersPerRoom;
-            _maxRoomCount = maxRoomCount;
+            _maxPlayersPerLobby = maxPlayersPerLobby;
+            _maxLobbyCount = maxLobbyCount;
         }
 
-        public bool CreateRoom(string roomName, uint playerId)
+        public bool CreateLobby(string lobbyName, uint playerId)
         {
-            if (_rooms.Count == _maxRoomCount)
+            if (_lobbies.Count == _maxLobbyCount)
                 return false;
 
-            if (_rooms.ContainsKey(roomName))
+            if (_lobbies.ContainsKey(lobbyName))
                 return false;
 
             if (!_players.ContainsKey(playerId))
                 return false;
 
-            var matchmakingRoom = new MatchmakingRoom(roomName, _maxPlayersPreRoom);
-            _rooms.Add(roomName, matchmakingRoom);
+            var matchmakingLobby = new MatchmakingLobby(lobbyName, _maxPlayersPerLobby);
+            _lobbies.Add(lobbyName, matchmakingLobby);
 
             return true;
         }
 
-        public uint[] GetRoomPlayers(string roomName) =>
-            _rooms.TryGetValue(roomName, out var room) ? room.GetPlayers() : null;
+        public uint[] GetLobbyPlayers(string lobbyName) =>
+            _lobbies.TryGetValue(lobbyName, out var lobby) ? lobby.GetPlayers() : null;
 
         public MatchmakingPlayer AddPlayer(string playerName)
         {
@@ -54,7 +54,7 @@ namespace Hatgame.Multiplayer
             if (_players.ContainsKey(playerId))
             {
                 var player = _players[playerId];
-                RemovePlayerFromRoom(playerId);
+                RemovePlayerFromLobby(playerId);
                 _players.Remove(playerId);
 
                 return true;
@@ -77,41 +77,41 @@ namespace Hatgame.Multiplayer
             return false;
         }
 
-        public bool AddPlayerToRoom(uint playerId, string roomName)
+        public bool AddPlayerToLobby(uint playerId, string lobbyName)
         {
-            if (!_rooms.ContainsKey(roomName))
+            if (!_lobbies.ContainsKey(lobbyName))
                 return false;
 
             if (!_players.ContainsKey(playerId))
                 return false;
 
-            var result = _rooms[roomName].AddPlayer(playerId);
+            var result = _lobbies[lobbyName].AddPlayer(playerId);
             if (result)
             {
                 var player = _players[playerId];
 
-                RemovePlayerFromRoom(playerId);
+                RemovePlayerFromLobby(playerId);
 
-                player.roomName = roomName;
+                player.lobbyName = lobbyName;
                 _players[playerId] = player;
             }
 
             return result;
         }
 
-        public bool RemovePlayerFromRoom(uint playerId)
+        public bool RemovePlayerFromLobby(uint playerId)
         {
             if (_players.TryGetValue(playerId, out var player))
             {
-                if (_rooms.TryGetValue(player.roomName, out var room))
+                if (_lobbies.TryGetValue(player.lobbyName, out var lobby))
                 {
-                    if (room.RemovePlayer(playerId))
+                    if (lobby.RemovePlayer(playerId))
                     {
-                        if (room.playerCount == 0)
-                            _rooms.Remove(player.roomName);
+                        if (lobby.playerCount == 0)
+                            _lobbies.Remove(player.lobbyName);
                     }
 
-                    player.roomName = string.Empty;
+                    player.lobbyName = string.Empty;
                     _players[playerId] = player;
 
                     return true;
@@ -131,11 +131,11 @@ namespace Hatgame.Multiplayer
             return false;
         }
 
-        public bool TryGetRoomAdmin(string roomName, out uint playerId)
+        public bool TryGetLobbyAdmin(string lobbyName, out uint playerId)
         {
-            if (_rooms.TryGetValue(roomName, out var room))
+            if (_lobbies.TryGetValue(lobbyName, out var lobby))
             {
-                playerId = room.GetAdminId();
+                playerId = lobby.GetAdminId();
                 return true;
             }
             else

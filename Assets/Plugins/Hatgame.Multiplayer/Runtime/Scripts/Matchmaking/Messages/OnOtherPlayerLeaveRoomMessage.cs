@@ -2,7 +2,7 @@ using Mirror;
 
 namespace Hatgame.Multiplayer
 {
-    public struct OnOtherPlayerLeaveRoomMessage : NetworkMessage
+    public struct OnOtherPlayerLeaveLobbyMessage : NetworkMessage
     {
         public uint playerId;
     }

@@ -2,8 +2,8 @@ using Mirror;
 
 namespace Hatgame.Multiplayer
 {
-    public struct RequestJoinRoomMessage : NetworkMessage
+    public struct RequestJoinLobbyMessage : NetworkMessage
     {
-        public string roomName;
+        public string lobbyName;
     }
 }

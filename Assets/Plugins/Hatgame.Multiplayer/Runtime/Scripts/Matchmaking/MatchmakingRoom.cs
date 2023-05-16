@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Hatgame.Multiplayer
 {
-    public class MatchmakingRoom
+    public class MatchmakingLobby
     {
         private string _name;
 
@@ -17,7 +17,7 @@ namespace Hatgame.Multiplayer
 
         public int playerCount => _players.Count;
 
-        public MatchmakingRoom(string name, int maxPlayerCount)
+        public MatchmakingLobby(string name, int maxPlayerCount)
         {
             _name = name;
             _maxPlayerCount = maxPlayerCount;

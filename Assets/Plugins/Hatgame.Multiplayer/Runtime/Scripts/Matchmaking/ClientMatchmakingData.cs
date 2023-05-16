@@ -6,10 +6,10 @@ namespace Hatgame.Multiplayer
     public class ClientMatchmakingData
     {
         private MatchmakingPlayer _player;
-        private string _currentRoom;
+        private string _currentLobby;
         private bool _isAdmin;
 
-        private List<MatchmakingPlayer> _otherRoomPlayers = new List<MatchmakingPlayer>();
+        private List<MatchmakingPlayer> _otherLobbyPlayers = new List<MatchmakingPlayer>();
 
         public MatchmakingPlayer player
         {
@@ -17,15 +17,15 @@ namespace Hatgame.Multiplayer
             set => _player = value;
         }
 
-        public string currentRoom
+        public string currentLobby
         {
-            get => _currentRoom;
+            get => _currentLobby;
             set
             {
-                if (_currentRoom != value)
+                if (_currentLobby != value)
                 {
-                    _otherRoomPlayers.Clear();
-                    _currentRoom = value;
+                    _otherLobbyPlayers.Clear();
+                    _currentLobby = value;
                 }
             }
         }
@@ -36,18 +36,18 @@ namespace Hatgame.Multiplayer
             set => _isAdmin = value;
         }
 
-        public void AddOtherPlayerToRoom(MatchmakingPlayer player)
+        public void AddOtherPlayerToLobby(MatchmakingPlayer player)
         {
-            _otherRoomPlayers.Add(player);
+            _otherLobbyPlayers.Add(player);
         }
 
-        public void RemoveOtherPlayerFromRoom(uint playerId)
+        public void RemoveOtherPlayerFromLobby(uint playerId)
         {
-            for (int i = 0; i < _otherRoomPlayers.Count; ++i)
+            for (int i = 0; i < _otherLobbyPlayers.Count; ++i)
             {
-                if (_otherRoomPlayers[i].id == playerId)
+                if (_otherLobbyPlayers[i].id == playerId)
                 {
-                    _otherRoomPlayers.RemoveAt(i);
+                    _otherLobbyPlayers.RemoveAt(i);
                     break;
                 }
             }
@@ -55,26 +55,26 @@ namespace Hatgame.Multiplayer
 
         public void OtherPlayerChangeName(uint playerId, string newPlayerName)
         {
-            for (int i = 0; i < _otherRoomPlayers.Count; ++i)
+            for (int i = 0; i < _otherLobbyPlayers.Count; ++i)
             {
-                var player = _otherRoomPlayers[i];
+                var player = _otherLobbyPlayers[i];
                 if (player.id == playerId)
                 {
                     player.name = newPlayerName;
-                    _otherRoomPlayers[i] = player;
+                    _otherLobbyPlayers[i] = player;
                     break;
                 }
             }
         }
 
-        public void ClearOtherRoomPlayers() => _otherRoomPlayers.Clear();
+        public void ClearOtherLobbyPlayers() => _otherLobbyPlayers.Clear();
 
         public void Reset()
         {
             _player = new MatchmakingPlayer();
-            _currentRoom = string.Empty;
+            _currentLobby = string.Empty;
             _isAdmin = false;
-            _otherRoomPlayers.Clear();
+            _otherLobbyPlayers.Clear();
         }
     }
 }
