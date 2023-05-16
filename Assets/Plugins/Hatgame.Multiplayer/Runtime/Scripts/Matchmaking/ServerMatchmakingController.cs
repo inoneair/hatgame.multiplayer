@@ -13,10 +13,10 @@ namespace Hatgame.Multiplayer
         private Dictionary<int, uint> _connectionToPlayerId = new Dictionary<int, uint>();
         private Dictionary<uint, int> _playerIdToConnection = new Dictionary<uint, int>();
 
-        public ServerMatchmakingController(NetworkController networkController, MatchmakingSettings settings)
+        public ServerMatchmakingController(MatchmakingSettings settings)
         {
             _matchmakingData = new ServerMatchmakingData(settings.maxPlayersPerLobby, settings.maxLobbyCount);
-            _networkController = networkController;
+            _networkController = NetworkController.instance;
             _networkController.RegisterOnServerConnect(OnServerConnectHandler);
             _networkController.RegisterOnServerDisconnect(OnServerDisconnectHandler);
             _networkController.RegisterServerOnReceiveMessage<RequestCreateLobbyMessage>(OnRequestCreateLobbyMessageHandler);

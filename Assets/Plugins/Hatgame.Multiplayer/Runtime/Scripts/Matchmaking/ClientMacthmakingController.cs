@@ -16,10 +16,10 @@ namespace Hatgame.Multiplayer
         private event Action<AnswerLeaveLobbyMessage> _onAnswerLeaveLobbyReceived;
         private event Action<AnswerChangePlayerNameMessage> _onAnswerChangePlayerNameReceived;
 
-        public ClientMacthmakingController(NetworkController networkController)
+        public ClientMacthmakingController()
         {
             _matchmakingData = new ClientMatchmakingData();
-            _networkController = networkController;
+            _networkController = NetworkController.instance;
 
             _networkController.RegisterOnClientDisconnect(OnClientDisconnectHandler);
             _networkController.RegisterClientOnReceiveMessage<OnPlayerConnectedMessage>(OnPlayerConnectedMessageHandler);
