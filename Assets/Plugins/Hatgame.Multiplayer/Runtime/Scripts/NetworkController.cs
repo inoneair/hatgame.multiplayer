@@ -95,18 +95,9 @@ namespace Hatgame.Multiplayer
 
             RegisterClientMessages();
 
-            _onStartClient?.Invoke();
-        }
-
-        public void ConnectClient()
-        {
-            if (!NetworkClient.active)
-            {
-                Debug.LogWarning("Client is not started.");
-                return;
-            }
-
             NetworkClient.Connect(_networkAddress);
+
+            _onStartClient?.Invoke();
         }
 
         public void StartHost()
