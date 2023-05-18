@@ -2,7 +2,8 @@
     "name": "Hatgame.Multiplayer",
     "rootNamespace": "",
     "references": [
-        "GUID:30817c1a0e6d646d99c048fc403f5979"
+        "GUID:30817c1a0e6d646d99c048fc403f5979",
+        "GUID:f707117e45a74094abe922f4965b9b76"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
