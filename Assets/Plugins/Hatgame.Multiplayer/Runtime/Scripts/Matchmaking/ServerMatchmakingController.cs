@@ -13,16 +13,25 @@ namespace Hatgame.Multiplayer
         private Dictionary<int, uint> _connectionToPlayerId = new Dictionary<int, uint>();
         private Dictionary<uint, int> _playerIdToConnection = new Dictionary<uint, int>();
 
-        public ServerMatchmakingController(MatchmakingSettings settings)
+        private static ServerMatchmakingController _instance;
+        public static ServerMatchmakingController instance => _instance ??= new ServerMatchmakingController();
+
+        private ServerMatchmakingController()
         {
-            _matchmakingData = new ServerMatchmakingData(settings.maxPlayersPerLobby, settings.maxLobbyCount);
+            _matchmakingData = new ServerMatchmakingData();
             _networkController = NetworkController.instance;
-            _networkController.RegisterOnServerConnect(OnServerConnectHandler);
-            _networkController.RegisterOnServerDisconnect(OnServerDisconnectHandler);
-            _networkController.RegisterServerOnReceiveMessage<RequestCreateLobbyMessage>(OnRequestCreateLobbyMessageHandler);
-            _networkController.RegisterServerOnReceiveMessage<RequestJoinLobbyMessage>(OnRequestJoinLobbyMessageHandler);
-            _networkController.RegisterServerOnReceiveMessage<RequestLeaveLobbyMessage>(OnRequestLeaveLobbyMessageHandler);
-            _networkController.RegisterServerOnReceiveMessage<RequestChangePlayerNameMessage>(OnRequestChangePlayerNameMessageHandler);
+            _networkController.SubscribeOnServerConnect(OnServerConnectHandler);
+            _networkController.SubscribeOnServerDisconnect(OnServerDisconnectHandler);
+            _networkController.SubscribeServerOnReceiveMessage<RequestCreateLobbyMessage>(OnRequestCreateLobbyMessageHandler);
+            _networkController.SubscribeServerOnReceiveMessage<RequestJoinLobbyMessage>(OnRequestJoinLobbyMessageHandler);
+            _networkController.SubscribeServerOnReceiveMessage<RequestLeaveLobbyMessage>(OnRequestLeaveLobbyMessageHandler);
+            _networkController.SubscribeServerOnReceiveMessage<RequestChangePlayerNameMessage>(OnRequestChangePlayerNameMessageHandler);
+        }
+
+        public void SetSettings(MatchmakingSettings settings)
+        {
+            _matchmakingData.maxPlayersPerLobby = settings.maxPlayersPerLobby;
+            _matchmakingData.maxLobbyCount = settings.maxLobbyCount;
         }
 
         private void OnServerConnectHandler(NetworkConnectionToClient connection)

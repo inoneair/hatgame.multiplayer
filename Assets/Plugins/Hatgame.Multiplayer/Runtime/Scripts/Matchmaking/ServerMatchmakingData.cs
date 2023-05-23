@@ -1,22 +1,27 @@
-using System.Collections;
 using System.Collections.Generic;
 
 namespace Hatgame.Multiplayer
 {
     public class ServerMatchmakingData
     {
-        private int _maxPlayersPerLobby;
-        private int _maxLobbyCount;
+        private int _maxPlayersPerLobby = 2;
+        private int _maxLobbyCount = 10;
 
         private uint _lastPlayerId = 1;
 
         private Dictionary<string, MatchmakingLobby> _lobbies = new Dictionary<string, MatchmakingLobby>();
         private Dictionary<uint, MatchmakingPlayer> _players = new Dictionary<uint, MatchmakingPlayer>();
 
-        public ServerMatchmakingData(int maxPlayersPerLobby, int maxLobbyCount)
+        public int maxPlayersPerLobby
         {
-            _maxPlayersPerLobby = maxPlayersPerLobby;
-            _maxLobbyCount = maxLobbyCount;
+            get => _maxPlayersPerLobby;
+            set => _maxPlayersPerLobby = value;
+        }
+
+        public int maxLobbyCount
+        {
+            get => _maxLobbyCount;
+            set => _maxLobbyCount = value;
         }
 
         public bool CreateLobby(string lobbyName, uint playerId)

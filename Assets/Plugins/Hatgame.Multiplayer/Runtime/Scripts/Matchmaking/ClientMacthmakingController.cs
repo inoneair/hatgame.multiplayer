@@ -1,6 +1,4 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Hatgame.Multiplayer
@@ -10,31 +8,36 @@ namespace Hatgame.Multiplayer
         private ClientMatchmakingData _matchmakingData;
         private NetworkController _networkController;
 
-        private event Action<AnswerStartGameMessage> _onAnswerStartGameReceived;
-        private event Action<AnswerCreateLobbyMessage> _onAnswerCreateLobbyReceived;
-        private event Action<AnswerJoinLobbyMessage> _onAnswerJoinLobbyReceived;
-        private event Action<AnswerLeaveLobbyMessage> _onAnswerLeaveLobbyReceived;
-        private event Action<AnswerChangePlayerNameMessage> _onAnswerChangePlayerNameReceived;
+        private Action<AnswerStartGameMessage> _onAnswerStartGameReceived;
+        private Action<AnswerCreateLobbyMessage> _onAnswerCreateLobbyReceived;
+        private Action<AnswerJoinLobbyMessage> _onAnswerJoinLobbyReceived;
+        private Action<AnswerLeaveLobbyMessage> _onAnswerLeaveLobbyReceived;
+        private Action<AnswerChangePlayerNameMessage> _onAnswerChangePlayerNameReceived;
+
+        private static ClientMacthmakingController _instance;
+
+        public static ClientMacthmakingController instance => _instance ??= new ClientMacthmakingController();
+        
 
         public ClientMacthmakingController()
         {
             _matchmakingData = new ClientMatchmakingData();
             _networkController = NetworkController.instance;
 
-            _networkController.RegisterOnClientDisconnect(OnClientDisconnectHandler);
-            _networkController.RegisterClientOnReceiveMessage<OnPlayerConnectedMessage>(OnPlayerConnectedMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<OnReceivedLobbyAdminRights>(OnReceivedLobbyAdminRights);
+            _networkController.SubscribeOnClientDisconnect(OnClientDisconnectHandler);
+            _networkController.SubscribeClientOnReceiveMessage<OnPlayerConnectedMessage>(OnPlayerConnectedMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<OnReceivedLobbyAdminRights>(OnReceivedLobbyAdminRights);
 
-            _networkController.RegisterClientOnReceiveMessage<AnswerStartGameMessage>(OnAnswerStartGameMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<AnswerCreateLobbyMessage>(OnAnswerCreateLobbyMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<AnswerJoinLobbyMessage>(OnAnswerJoinLobbyMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<AnswerLeaveLobbyMessage>(OnAnswerLeaveLobbyMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<AnswerChangePlayerNameMessage>(OnAnswerChangePlayerNameMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<AnswerStartGameMessage>(OnAnswerStartGameMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<AnswerCreateLobbyMessage>(OnAnswerCreateLobbyMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<AnswerJoinLobbyMessage>(OnAnswerJoinLobbyMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<AnswerLeaveLobbyMessage>(OnAnswerLeaveLobbyMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<AnswerChangePlayerNameMessage>(OnAnswerChangePlayerNameMessageHandler);
 
-            _networkController.RegisterClientOnReceiveMessage<OnOtherPlayerJoinLobbyMessage>(OnOtherPlayerJoinLobbyMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<OnOtherPlayerLeaveLobbyMessage>(OnOtherPlayerLeaveLobbyMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<OnOtherPlayerChangeNameMessage>(OnOtherPlayerChangeNameMessageHandler);
-            _networkController.RegisterClientOnReceiveMessage<OnAdminStartGameMessage>(OnAdminStartGameMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<OnOtherPlayerJoinLobbyMessage>(OnOtherPlayerJoinLobbyMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<OnOtherPlayerLeaveLobbyMessage>(OnOtherPlayerLeaveLobbyMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<OnOtherPlayerChangeNameMessage>(OnOtherPlayerChangeNameMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<OnAdminStartGameMessage>(OnAdminStartGameMessageHandler);
         }
 
         public async Task<bool> StartGame()
@@ -200,21 +203,15 @@ namespace Hatgame.Multiplayer
         private void OnAnswerChangePlayerNameMessageHandler(AnswerChangePlayerNameMessage message) =>
             _onAnswerChangePlayerNameReceived?.Invoke(message);
 
-        private void OnOtherPlayerJoinLobbyMessageHandler(OnOtherPlayerJoinLobbyMessage message)
-        {
+        private void OnOtherPlayerJoinLobbyMessageHandler(OnOtherPlayerJoinLobbyMessage message) =>        
             _matchmakingData.AddOtherPlayerToLobby(new MatchmakingPlayer { id = message.playerId, name = message.playerName, lobbyName = _matchmakingData.currentLobby });
-        }
-
-        private void OnOtherPlayerLeaveLobbyMessageHandler(OnOtherPlayerLeaveLobbyMessage message)
-        {
+        
+        private void OnOtherPlayerLeaveLobbyMessageHandler(OnOtherPlayerLeaveLobbyMessage message) =>        
             _matchmakingData.RemoveOtherPlayerFromLobby(message.playerId);
-        }
-
-        private void OnOtherPlayerChangeNameMessageHandler(OnOtherPlayerChangeNameMessage message)
-        {
+        
+        private void OnOtherPlayerChangeNameMessageHandler(OnOtherPlayerChangeNameMessage message) =>        
             _matchmakingData.OtherPlayerChangeName(message.playerId, message.newPlayerName);
-        }
-
+        
         private void OnAdminStartGameMessageHandler(OnAdminStartGameMessage message)
         {
 
