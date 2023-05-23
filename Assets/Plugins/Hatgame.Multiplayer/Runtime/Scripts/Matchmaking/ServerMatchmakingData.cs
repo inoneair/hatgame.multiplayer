@@ -58,7 +58,6 @@ namespace Hatgame.Multiplayer
         {
             if (_players.ContainsKey(playerId))
             {
-                var player = _players[playerId];
                 RemovePlayerFromLobby(playerId);
                 _players.Remove(playerId);
 
