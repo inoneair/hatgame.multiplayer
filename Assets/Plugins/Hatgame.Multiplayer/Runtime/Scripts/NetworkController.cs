@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using UnityEngine;
 using Mirror;
+using Hatgame.Common;
 
 namespace Hatgame.Multiplayer
 {
@@ -48,21 +49,21 @@ namespace Hatgame.Multiplayer
 
         public NetworkManagerMode mode { get; private set; }
 
-        private event Action _onStartHost;
-        private event Action _onStartServer;
-        private event Action _onStartClient;
-        private event Action _onStopHost;
-        private event Action _onStopServer;
-        private event Action _onStopClient;
+        private Action _onStartHost;
+        private Action _onStartServer;
+        private Action _onStartClient;
+        private Action _onStopHost;
+        private Action _onStopServer;
+        private Action _onStopClient;
 
-        private event Action<NetworkConnectionToClient> _onServerConnect;
-        private event Action _onClientConnect;
+        private Action<NetworkConnectionToClient> _onServerConnect;
+        private Action _onClientConnect;
 
-        private event Action<NetworkConnectionToClient> _onServerDisconnect;
-        private event Action _onClientDisconnect;
+        private Action<NetworkConnectionToClient> _onServerDisconnect;
+        private Action _onClientDisconnect;
 
-        private event Action<NetworkConnectionToClient, TransportError, string> _onServerError;
-        private event Action<TransportError, string> _onClientError;
+        private Action<NetworkConnectionToClient, TransportError, string> _onServerError;
+        private Action<TransportError, string> _onClientError;
 
         private NetworkController()
         {
@@ -219,71 +220,109 @@ namespace Hatgame.Multiplayer
             }
         }
 
-        public void RegisterOnStartHost(Action handler)
+        public IDisposable SubscribeOnStartHost(Action handler)
         {
             _onStartHost += handler;
+
+            return new Unsubscriber(() => _onStartHost -= handler);
         }
 
-        public void RegisterOnStartServer(Action handler)
+        public IDisposable SubscribeOnStartServer(Action handler)
         {
             _onStartServer += handler;
+
+            return new Unsubscriber(() => _onStartServer -= handler);
         }
 
-        public void RegisterOnStartClient(Action handler)
+        public IDisposable SubscribeOnStartClient(Action handler)
         {
             _onStartClient += handler;
+
+            return new Unsubscriber(() => _onStartClient -= handler);
         }
 
-        public void RegisterOnStopHost(Action handler)
+        public IDisposable SubscribeOnStopHost(Action handler)
         {
             _onStopHost += handler;
+
+            return new Unsubscriber(() => _onStopHost -= handler);
         }
 
-        public void RegisterOnStopServer(Action handler)
+        public IDisposable SubscribeOnStopServer(Action handler)
         {
             _onStopServer += handler;
+
+            return new Unsubscriber(() => _onStopServer -= handler);
         }
 
-        public void RegisterOnStopClient(Action handler)
+        public IDisposable SubscribeOnStopClient(Action handler)
         {
             _onStopClient += handler;
+
+            return new Unsubscriber(() => _onStopClient -= handler);
         }
 
-        public void RegisterOnServerConnect(Action<NetworkConnectionToClient> handler)
+        public IDisposable SubscribeOnServerConnect(Action<NetworkConnectionToClient> handler)
         {
             _onServerConnect += handler;
+
+            return new Unsubscriber(() => _onServerConnect -= handler);
         }
 
-        public void RegisterOnClientConnect(Action handler)
+        public IDisposable SubscribeOnClientConnect(Action handler)
         {
             _onClientConnect += handler;
+
+            return new Unsubscriber(() => _onClientConnect -= handler);
         }
 
-        public void RegisterOnServerDisconnect(Action<NetworkConnectionToClient> handler)
+        public IDisposable SubscribeOnServerDisconnect(Action<NetworkConnectionToClient> handler)
         {
             _onServerDisconnect += handler;
+
+            return new Unsubscriber(() => _onServerDisconnect -= handler);
         }
 
-        public void RegisterOnClientDisconnect(Action handler)
+        public IDisposable SubscribeOnClientDisconnect(Action handler)
         {
             _onClientDisconnect += handler;
+
+            return new Unsubscriber(() => _onClientDisconnect -= handler);
         }
 
-        public void RegisterOnServerError(Action<NetworkConnectionToClient, TransportError, string> handler)
+        public IDisposable SubscribeOnServerError(Action<NetworkConnectionToClient, TransportError, string> handler)
         {
             _onServerError += handler;
+
+            return new Unsubscriber(() => _onServerError -= handler);
         }
 
-        public void RegisterOnClientError(Action<TransportError, string> handler)
+        public IDisposable SubscribeOnClientError(Action<TransportError, string> handler)
         {
             _onClientError += handler;
+
+            return new Unsubscriber(() => _onClientError -= handler);
         }
 
-        public void RegisterServerOnReceiveMessage<T>(Action<NetworkConnectionToClient, T> handler) where T : struct, NetworkMessage =>
+        public void SubscribeServerOnReceiveMessage<T>(Action<NetworkConnectionToClient, T> handler) where T : struct, NetworkMessage
+        {
             NetworkServer.RegisterHandler(handler);
+        }
 
-        public void RegisterClientOnReceiveMessage<T>(Action<T> handler) where T : struct, NetworkMessage =>
+        public void UnsubscribeServerOnReceiveMessage<T>() where T : struct, NetworkMessage
+        {
+            NetworkServer.UnregisterHandler<T>();
+        }
+
+        public void SubscribeClientOnReceiveMessage<T>(Action<T> handler) where T : struct, NetworkMessage
+        {
             NetworkClient.RegisterHandler(handler);
+        }
+
+        public void UnsubscribeClientOnReceiveMessage<T>() where T : struct, NetworkMessage
+        {
+            NetworkClient.UnregisterHandler<T>();
+        }
 
         private void SetupServer()
         {
