@@ -107,7 +107,7 @@ namespace Hatgame.Multiplayer
         {
             if (_players.TryGetValue(playerId, out var player))
             {
-                if (_lobbies.TryGetValue(player.lobbyName, out var lobby))
+                if (!string.IsNullOrEmpty(player.lobbyName) && _lobbies.TryGetValue(player.lobbyName, out var lobby))
                 {
                     if (lobby.RemovePlayer(playerId))
                     {
