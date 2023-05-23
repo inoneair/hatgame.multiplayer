@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using Hatgame.Common;
 
 namespace Hatgame.Multiplayer
 {
@@ -8,12 +9,17 @@ namespace Hatgame.Multiplayer
         private ClientMatchmakingData _matchmakingData;
         private NetworkController _networkController;
 
+        private Action _onClientConnected;
+        private Action _onClientDisconnected;
+
         private Action<AnswerStartGameMessage> _onAnswerStartGameReceived;
         private Action<AnswerCreateLobbyMessage> _onAnswerCreateLobbyReceived;
         private Action<AnswerJoinLobbyMessage> _onAnswerJoinLobbyReceived;
         private Action<AnswerLeaveLobbyMessage> _onAnswerLeaveLobbyReceived;
         private Action<AnswerChangePlayerNameMessage> _onAnswerChangePlayerNameReceived;
 
+        public bool isConnected => _networkController.connectionsCount > 0;
+        
         private static ClientMacthmakingController _instance;
 
         public static ClientMacthmakingController instance => _instance ??= new ClientMacthmakingController();
@@ -24,6 +30,7 @@ namespace Hatgame.Multiplayer
             _matchmakingData = new ClientMatchmakingData();
             _networkController = NetworkController.instance;
 
+            _networkController.SubscribeOnClientConnect(OnClientConnectHandler);
             _networkController.SubscribeOnClientDisconnect(OnClientDisconnectHandler);
             _networkController.SubscribeClientOnReceiveMessage<OnPlayerConnectedMessage>(OnPlayerConnectedMessageHandler);
             _networkController.SubscribeClientOnReceiveMessage<OnReceivedLobbyAdminRights>(OnReceivedLobbyAdminRights);
@@ -177,8 +184,31 @@ namespace Hatgame.Multiplayer
             return isSuccess;
         }
 
-        private void OnClientDisconnectHandler() =>
+        public IDisposable SubscribeOnClientConnected(Action handler)
+        {
+            _onClientConnected += handler;
+
+            return new Unsubscriber(()=> _onClientConnected -= handler);
+        }
+
+        public IDisposable SubscribeOnClientDisconnected(Action handler)
+        {
+            _onClientDisconnected += handler;
+
+            return new Unsubscriber(() => _onClientDisconnected -= handler);
+        }
+
+        private void OnClientConnectHandler()
+        {
+            _onClientConnected?.Invoke();
+        }
+
+        private void OnClientDisconnectHandler()
+        {
             _matchmakingData.Reset();
+
+            _onClientDisconnected?.Invoke();
+        }
 
         private void OnPlayerConnectedMessageHandler(OnPlayerConnectedMessage message) =>
             _matchmakingData.player = message.player;
