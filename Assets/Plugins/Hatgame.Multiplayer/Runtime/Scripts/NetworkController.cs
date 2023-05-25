@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Mirror;
@@ -14,6 +15,25 @@ namespace Hatgame.Multiplayer
         static private NetworkConnection _clientReadyConnection;
 
         private string _networkAddress = "localhost";
+
+        private Action _onStartHost;
+        private Action _onStartServer;
+        private Action _onStartClient;
+        private Action _onStopHost;
+        private Action _onStopServer;
+        private Action _onStopClient;
+
+        private Action<NetworkConnectionToClient> _onServerConnect;
+        private Action _onClientConnect;
+
+        private Action<NetworkConnectionToClient> _onServerDisconnect;
+        private Action _onClientDisconnect;
+
+        private Action<NetworkConnectionToClient, TransportError, string> _onServerError;
+        private Action<TransportError, string> _onClientError;
+
+        private ServerListenerStorage _serverMessageListeners = new ServerListenerStorage();
+        private ClientListenerStorage _clientMessageListeners = new ClientListenerStorage();
 
         public int serverTickRate
         {
@@ -49,22 +69,6 @@ namespace Hatgame.Multiplayer
 
         public NetworkManagerMode mode { get; private set; }
 
-        private Action _onStartHost;
-        private Action _onStartServer;
-        private Action _onStartClient;
-        private Action _onStopHost;
-        private Action _onStopServer;
-        private Action _onStopClient;
-
-        private Action<NetworkConnectionToClient> _onServerConnect;
-        private Action _onClientConnect;
-
-        private Action<NetworkConnectionToClient> _onServerDisconnect;
-        private Action _onClientDisconnect;
-
-        private Action<NetworkConnectionToClient, TransportError, string> _onServerError;
-        private Action<TransportError, string> _onClientError;
-
         private NetworkController()
         {
             serverTickRate = 30;
@@ -95,6 +99,7 @@ namespace Hatgame.Multiplayer
             mode = NetworkManagerMode.ClientOnly;
 
             RegisterClientMessages();
+            RegisterClientMessageListeners();
 
             NetworkClient.Connect(_networkAddress);
 
@@ -304,24 +309,46 @@ namespace Hatgame.Multiplayer
             return new Unsubscriber(() => _onClientError -= handler);
         }
 
-        public void SubscribeServerOnReceiveMessage<T>(Action<NetworkConnectionToClient, T> handler) where T : struct, NetworkMessage
+        public IDisposable SubscribeServerOnReceiveMessage<T>(Action<NetworkConnectionToClient, T> handler) where T : struct, NetworkMessage
         {
-            NetworkServer.RegisterHandler(handler);
+            bool isInvokerOfTypeTRegistered = _serverMessageListeners.ContainsListenersOfType<T>();
+            var unsubscriber = _serverMessageListeners.AddListener(handler);
+
+            if (!isInvokerOfTypeTRegistered)
+            {
+                void RegisterHandler()
+                {
+                    var invoker = _serverMessageListeners.GetInvoker<T>();
+                    NetworkServer.RegisterHandler(invoker);
+                }
+                RegisterHandler();
+
+                if (_serverMessageListeners.TryGetListener<T>(out var listener))
+                    listener.registerListenerMethod = () => RegisterHandler();
+            }
+
+            return unsubscriber;
         }
 
-        public void UnsubscribeServerOnReceiveMessage<T>() where T : struct, NetworkMessage
+        public IDisposable SubscribeClientOnReceiveMessage<T>(Action<T> handler) where T : struct, NetworkMessage
         {
-            NetworkServer.UnregisterHandler<T>();
-        }
+            bool isInvokerOfTypeTRegistered = _clientMessageListeners.ContainsListenersOfType<T>();
+            var unsubscriber = _clientMessageListeners.AddListener(handler);
 
-        public void SubscribeClientOnReceiveMessage<T>(Action<T> handler) where T : struct, NetworkMessage
-        {
-            NetworkClient.RegisterHandler(handler);
-        }
+            if (!isInvokerOfTypeTRegistered)
+            {
+                void RegisterHandler()
+                {
+                    var invoker = _clientMessageListeners.GetInvoker<T>();
+                    NetworkClient.RegisterHandler(invoker);
+                }
+                RegisterHandler();
 
-        public void UnsubscribeClientOnReceiveMessage<T>() where T : struct, NetworkMessage
-        {
-            NetworkClient.UnregisterHandler<T>();
+                if (_clientMessageListeners.TryGetListener<T>(out var listener))
+                    listener.registerListenerMethod = () => RegisterHandler();
+            }
+
+            return unsubscriber;
         }
 
         private void SetupServer()
@@ -329,6 +356,7 @@ namespace Hatgame.Multiplayer
             NetworkServer.Listen(maxConnections);
 
             RegisterServerMessages();
+            RegisterServerMessageListeners();
         }
 
         private void RegisterServerMessages()
@@ -347,6 +375,18 @@ namespace Hatgame.Multiplayer
             NetworkClient.OnDisconnectedEvent = OnClientDisconnectInternal;
             NetworkClient.OnErrorEvent = OnClientErrorHandler;
             NetworkClient.RegisterHandler<NotReadyMessage>(OnClientNotReadyMessageInternal);
+        }
+
+        private void RegisterClientMessageListeners()
+        {
+            foreach (var listener in _clientMessageListeners)
+                listener.InvokeRegisterListener();
+        }
+
+        private void RegisterServerMessageListeners()
+        {
+            foreach (var listener in _serverMessageListeners)            
+                listener.InvokeRegisterListener();            
         }
 
         private void OnServerConnectInternal(NetworkConnectionToClient conn)
