@@ -1,8 +1,7 @@
-using Mirror;
 
 namespace Hatgame.Multiplayer
 {
-    public struct AnswerLeaveLobbyMessage : NetworkMessage
+    public struct AnswerLeaveLobbyMessage
     {
         public bool isSuccess;
     }

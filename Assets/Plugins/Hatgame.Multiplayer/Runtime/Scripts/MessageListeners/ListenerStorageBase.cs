@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Mirror;
 
 namespace Hatgame.Multiplayer
 {
@@ -15,11 +14,11 @@ namespace Hatgame.Multiplayer
         public bool ContainsListenersOfType<T>() =>
             ContainsListenersOfType(typeof(T));
 
-        public bool TryGetListener<T>(out ListenerBase listener) where T : struct, NetworkMessage
+        /*public bool TryGetListener<T>(out ListenerBase listener) where T : struct, NetworkMessage
         {
             var type = typeof(T);
             return _typedListeners.TryGetValue(type, out listener);
-        }
+        }*/
 
         public IEnumerator<ListenerBase> GetEnumerator() =>
             _typedListeners.Values.GetEnumerator();

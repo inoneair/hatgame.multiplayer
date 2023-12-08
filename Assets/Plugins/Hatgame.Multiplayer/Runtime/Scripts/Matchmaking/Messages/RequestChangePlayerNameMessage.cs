@@ -1,8 +1,7 @@
-using Mirror;
 
 namespace Hatgame.Multiplayer
 {
-    public struct RequestChangePlayerNameMessage : NetworkMessage
+    public struct RequestChangePlayerNameMessage
     {
         public string newPlayerName;
     }

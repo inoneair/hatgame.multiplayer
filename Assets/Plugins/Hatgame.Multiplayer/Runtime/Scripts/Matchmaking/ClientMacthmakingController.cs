@@ -7,7 +7,7 @@ namespace Hatgame.Multiplayer
     public class ClientMacthmakingController
     {
         private ClientMatchmakingData _matchmakingData;
-        private NetworkController _networkController;
+        //private MirrorNetworkController _networkController;
 
         private Action _onClientConnected;
         private Action _onClientDisconnected;
@@ -18,7 +18,7 @@ namespace Hatgame.Multiplayer
         private Action<AnswerLeaveLobbyMessage> _onAnswerLeaveLobbyReceived;
         private Action<AnswerChangePlayerNameMessage> _onAnswerChangePlayerNameReceived;
 
-        public bool isConnected => _networkController.connectionsCount > 0;
+       // public bool isConnected => _networkController.connectionsCount > 0;
         
         private static ClientMacthmakingController _instance;
 
@@ -28,7 +28,7 @@ namespace Hatgame.Multiplayer
         public ClientMacthmakingController()
         {
             _matchmakingData = new ClientMatchmakingData();
-            _networkController = NetworkController.instance;
+            /*_networkController = MirrorNetworkController.instance;
 
             _networkController.SubscribeOnClientConnect(OnClientConnectHandler);
             _networkController.SubscribeOnClientDisconnect(OnClientDisconnectHandler);
@@ -44,12 +44,12 @@ namespace Hatgame.Multiplayer
             _networkController.SubscribeClientOnReceiveMessage<OnOtherPlayerJoinLobbyMessage>(OnOtherPlayerJoinLobbyMessageHandler);
             _networkController.SubscribeClientOnReceiveMessage<OnOtherPlayerLeaveLobbyMessage>(OnOtherPlayerLeaveLobbyMessageHandler);
             _networkController.SubscribeClientOnReceiveMessage<OnOtherPlayerChangeNameMessage>(OnOtherPlayerChangeNameMessageHandler);
-            _networkController.SubscribeClientOnReceiveMessage<OnAdminStartGameMessage>(OnAdminStartGameMessageHandler);
+            _networkController.SubscribeClientOnReceiveMessage<OnAdminStartGameMessage>(OnAdminStartGameMessageHandler);*/
         }
 
         public async Task<bool> StartGame()
         {
-            _networkController.SendMessageToServer(new RequestStartGameMessage());
+            //_networkController.SendMessageToServer(new RequestStartGameMessage());
 
             bool isSuccess = false;
             bool answerReceived = false;
@@ -66,15 +66,15 @@ namespace Hatgame.Multiplayer
             };
             _onAnswerStartGameReceived += onAnswerReceivedHandler;
 
-            while (_networkController.isNetworkActive && answerReceived)
-                await Task.Yield();
+            /*while (_networkController.isNetworkActive && answerReceived)
+                await Task.Yield();*/
 
             return isSuccess;
         }
 
         public async Task<bool> CreateLobby(string lobbyName)
         {
-            _networkController.SendMessageToServer(new RequestCreateLobbyMessage { lobbyName = lobbyName });
+            //_networkController.SendMessageToServer(new RequestCreateLobbyMessage { lobbyName = lobbyName });
 
             bool isSuccess = false;
             bool answerReceived = false;
@@ -93,15 +93,15 @@ namespace Hatgame.Multiplayer
             };
             _onAnswerCreateLobbyReceived += onAnswerReceivedHandler;
 
-            while (_networkController.isNetworkActive && answerReceived)
-                await Task.Yield();
+            /*while (_networkController.isNetworkActive && answerReceived)
+                await Task.Yield();*/
 
             return isSuccess;
         }
 
         public async Task<bool> JoinLobby(string lobbyName)
         {
-            _networkController.SendMessageToServer(new RequestJoinLobbyMessage { lobbyName = lobbyName });
+            //_networkController.SendMessageToServer(new RequestJoinLobbyMessage { lobbyName = lobbyName });
 
             bool isSuccess = false;
             bool answerReceived = false;
@@ -123,15 +123,15 @@ namespace Hatgame.Multiplayer
             };
             _onAnswerJoinLobbyReceived += onAnswerReceivedHandler;
 
-            while (_networkController.isNetworkActive && answerReceived)
-                await Task.Yield();
+            /*while (_networkController.isNetworkActive && answerReceived)
+                await Task.Yield();*/
 
             return isSuccess;
         }
 
         public async Task<bool> LeaveLobby()
         {
-            _networkController.SendMessageToServer(new RequestLeaveLobbyMessage());
+            //_networkController.SendMessageToServer(new RequestLeaveLobbyMessage());
 
             bool isSuccess = false;
             bool answerReceived = false;
@@ -150,15 +150,15 @@ namespace Hatgame.Multiplayer
             };
             _onAnswerLeaveLobbyReceived += onAnswerReceivedHandler;
 
-            while (_networkController.isNetworkActive && answerReceived)
-                await Task.Yield();
+            /*while (_networkController.isNetworkActive && answerReceived)
+                await Task.Yield();*/
 
             return isSuccess;
         }
 
         public async Task<bool> ChangePlayerName(string newName)
         {
-            _networkController.SendMessageToServer(new RequestChangePlayerNameMessage { newPlayerName = newName });
+            //_networkController.SendMessageToServer(new RequestChangePlayerNameMessage { newPlayerName = newName });
 
             bool isSuccess = false;
             bool answerReceived = false;
@@ -178,8 +178,8 @@ namespace Hatgame.Multiplayer
             };
             _onAnswerChangePlayerNameReceived += onAnswerReceivedHandler;
 
-            while (_networkController.isNetworkActive && answerReceived)
-                await Task.Yield();
+            /*while (_networkController.isNetworkActive && answerReceived)
+                await Task.Yield();*/
 
             return isSuccess;
         }

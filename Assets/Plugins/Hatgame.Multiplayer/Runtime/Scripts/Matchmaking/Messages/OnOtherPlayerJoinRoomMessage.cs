@@ -1,8 +1,7 @@
-using Mirror;
 
 namespace Hatgame.Multiplayer
 {
-    public struct OnOtherPlayerJoinLobbyMessage : NetworkMessage
+    public struct OnOtherPlayerJoinLobbyMessage
     {
         public uint playerId;
         public string playerName;

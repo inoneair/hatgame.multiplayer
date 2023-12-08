@@ -1,14 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Mirror;
 
 namespace Hatgame.Multiplayer
 {
     public class ServerMatchmakingController
     {
         private ServerMatchmakingData _matchmakingData;
-        private NetworkController _networkController;
+        //private MirrorNetworkController _networkController;
 
         private Dictionary<int, uint> _connectionToPlayerId = new Dictionary<int, uint>();
         private Dictionary<uint, int> _playerIdToConnection = new Dictionary<uint, int>();
@@ -19,13 +18,13 @@ namespace Hatgame.Multiplayer
         private ServerMatchmakingController()
         {
             _matchmakingData = new ServerMatchmakingData();
-            _networkController = NetworkController.instance;
-            _networkController.SubscribeOnServerConnect(OnServerConnectHandler);
+            //_networkController = MirrorNetworkController.instance;
+            /*_networkController.SubscribeOnServerConnect(OnServerConnectHandler);
             _networkController.SubscribeOnServerDisconnect(OnServerDisconnectHandler);
             _networkController.SubscribeServerOnReceiveMessage<RequestCreateLobbyMessage>(OnRequestCreateLobbyMessageHandler);
             _networkController.SubscribeServerOnReceiveMessage<RequestJoinLobbyMessage>(OnRequestJoinLobbyMessageHandler);
             _networkController.SubscribeServerOnReceiveMessage<RequestLeaveLobbyMessage>(OnRequestLeaveLobbyMessageHandler);
-            _networkController.SubscribeServerOnReceiveMessage<RequestChangePlayerNameMessage>(OnRequestChangePlayerNameMessageHandler);
+            _networkController.SubscribeServerOnReceiveMessage<RequestChangePlayerNameMessage>(OnRequestChangePlayerNameMessageHandler);*/
         }
 
         public void SetSettings(MatchmakingSettings settings)
@@ -34,16 +33,16 @@ namespace Hatgame.Multiplayer
             _matchmakingData.maxLobbyCount = settings.maxLobbyCount;
         }
 
-        private void OnServerConnectHandler(NetworkConnectionToClient connection)
+        /*private void OnServerConnectHandler(NetworkConnectionToClient connection)
         {
             var player = _matchmakingData.AddPlayer("");
             _connectionToPlayerId.Add(connection.connectionId, player.id);
             _playerIdToConnection.Add(player.id, connection.connectionId);
             var answer = new OnPlayerConnectedMessage { player = player };
-            NetworkController.instance.SendMessageToClient(connection, answer);
-        }
+            //MirrorNetworkController.instance.SendMessageToClient(connection, answer);
+        }*/
 
-        private void OnServerDisconnectHandler(NetworkConnectionToClient connection)
+        /*private void OnServerDisconnectHandler(NetworkConnectionToClient connection)
         {
             if (_connectionToPlayerId.TryGetValue(connection.connectionId, out var playerId))
             {
@@ -52,18 +51,18 @@ namespace Hatgame.Multiplayer
                 _connectionToPlayerId.Remove(connection.connectionId);
                 _playerIdToConnection.Remove(playerId);
             }
-        }
+        }*/
 
-        private void OnRequestCreateLobbyMessageHandler(NetworkConnectionToClient connection, RequestCreateLobbyMessage message)
+        /*private void OnRequestCreateLobbyMessageHandler(NetworkConnectionToClient connection, RequestCreateLobbyMessage message)
         {
             bool isSuccess = false;
             if (_connectionToPlayerId.TryGetValue(connection.connectionId, out var playerId))
                 isSuccess = _matchmakingData.CreateLobby(message.lobbyName, playerId);
 
-            _networkController.SendMessageToClient(connection, new AnswerCreateLobbyMessage { isSuccess = isSuccess });
-        }
+            //_networkController.SendMessageToClient(connection, new AnswerCreateLobbyMessage { isSuccess = isSuccess });
+        }*/
 
-        private void OnRequestJoinLobbyMessageHandler(NetworkConnectionToClient connection, RequestJoinLobbyMessage message)
+        /*private void OnRequestJoinLobbyMessageHandler(NetworkConnectionToClient connection, RequestJoinLobbyMessage message)
         {
             bool isSuccess = false;
             if (_connectionToPlayerId.TryGetValue(connection.connectionId, out var playerId))
@@ -76,23 +75,23 @@ namespace Hatgame.Multiplayer
                     var onOtherPlayerJoinLobbyMessage = new OnOtherPlayerJoinLobbyMessage { playerId = joinedPlayer.id, playerName = joinedPlayer.name };
                     foreach (var player in lobbyPlayers)
                     {
-                        if (player != joinedPlayer.id)
-                            _networkController.SendMessageToClient(_playerIdToConnection[player], onOtherPlayerJoinLobbyMessage);
-                    }
+                        /*if (player != joinedPlayer.id)
+                            _networkController.SendMessageToClient(_playerIdToConnection[player], onOtherPlayerJoinLobbyMessage);*/
+                    /*}
                 }
             }
 
-            _networkController.SendMessageToClient(connection, new AnswerJoinLobbyMessage { isSuccess = isSuccess });
-        }
+            //_networkController.SendMessageToClient(connection, new AnswerJoinLobbyMessage { isSuccess = isSuccess });
+        }*/
 
-        private void OnRequestLeaveLobbyMessageHandler(NetworkConnectionToClient connection, RequestLeaveLobbyMessage message)
+        /*private void OnRequestLeaveLobbyMessageHandler(NetworkConnectionToClient connection, RequestLeaveLobbyMessage message)
         {
             bool isSuccess = false;
             if (_connectionToPlayerId.TryGetValue(connection.connectionId, out var playerId))
                 isSuccess = OnPlayerLeaveLobbyHandler(playerId);
 
-            _networkController.SendMessageToClient(connection, new AnswerLeaveLobbyMessage { isSuccess = isSuccess });
-        }
+            //_networkController.SendMessageToClient(connection, new AnswerLeaveLobbyMessage { isSuccess = isSuccess });
+        }*/
 
         private bool OnPlayerLeaveLobbyHandler(uint playerId)
         {
@@ -108,14 +107,14 @@ namespace Hatgame.Multiplayer
                 if (lobbyPlayers.Length > 0)
                 {
                     var message = new OnOtherPlayerLeaveLobbyMessage { playerId = playerId };
-                    foreach (var lobbyPlayer in lobbyPlayers)
-                        _networkController.SendMessageToClient(_playerIdToConnection[lobbyPlayer], message);
+                    /*foreach (var lobbyPlayer in lobbyPlayers)
+                        _networkController.SendMessageToClient(_playerIdToConnection[lobbyPlayer], message);*/
                 }
 
                 if (isLeaveSuccess && isAdmin && _matchmakingData.TryGetLobbyAdmin(player.Value.name, out uint newAdminId))
                 {
-                    if (_playerIdToConnection.TryGetValue(newAdminId, out int newAdminConnection))
-                        _networkController.SendMessageToClient(newAdminConnection, new OnReceivedLobbyAdminRights());
+                    /*if (_playerIdToConnection.TryGetValue(newAdminId, out int newAdminConnection))
+                        _networkController.SendMessageToClient(newAdminConnection, new OnReceivedLobbyAdminRights());*/
                 }
 
                 return isLeaveSuccess;
@@ -124,7 +123,7 @@ namespace Hatgame.Multiplayer
             return false;
         }
 
-        private void OnRequestChangePlayerNameMessageHandler(NetworkConnectionToClient connection, RequestChangePlayerNameMessage message)
+        /*private void OnRequestChangePlayerNameMessageHandler(NetworkConnectionToClient connection, RequestChangePlayerNameMessage message)
         {
             bool isSuccess = false;
             if (_connectionToPlayerId.TryGetValue(connection.connectionId, out var playerId))
@@ -141,15 +140,15 @@ namespace Hatgame.Multiplayer
                             var onOtherPlayerChangeNameMessage = new OnOtherPlayerChangeNameMessage { playerId = playerId, newPlayerName = message.newPlayerName };
                             foreach (var lobbyPlayer in lobbyPlayers)
                             {
-                                if (lobbyPlayer != playerId)
-                                    _networkController.SendMessageToClient(_playerIdToConnection[lobbyPlayer], onOtherPlayerChangeNameMessage);
-                            }
+                                /*if (lobbyPlayer != playerId)
+                                    _networkController.SendMessageToClient(_playerIdToConnection[lobbyPlayer], onOtherPlayerChangeNameMessage);*/
+                            /*}
                         }
                     }
                 }
             }
 
-            _networkController.SendMessageToClient(connection, new AnswerChangePlayerNameMessage { isSuccess = isSuccess });
-        }
+            //_networkController.SendMessageToClient(connection, new AnswerChangePlayerNameMessage { isSuccess = isSuccess });
+        }*/
     }
 }

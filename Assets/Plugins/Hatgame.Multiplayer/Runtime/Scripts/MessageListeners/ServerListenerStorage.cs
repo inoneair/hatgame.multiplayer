@@ -1,11 +1,10 @@
 using System;
-using Mirror;
 
 namespace Hatgame.Multiplayer
 {
     public class ServerListenerStorage : ListenerStorageBase
     {
-        public IDisposable AddListener<T>(Action<NetworkConnectionToClient, T> handler) where T : struct, NetworkMessage
+        /*public IDisposable AddListener<T>(Action<NetworkConnectionToClient, T> handler) where T : struct, NetworkMessage
         {
             var type = typeof(T);
             ListenerBase listenerDataBase = null;
@@ -32,6 +31,6 @@ namespace Hatgame.Multiplayer
                 return typedListenerData.Invoke;
             }
             else return null;
-        }
+        }*/
     }
 }

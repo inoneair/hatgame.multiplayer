@@ -1,9 +1,9 @@
 using System;
-using Mirror;
+//using Mirror;
 
 namespace Hatgame.Multiplayer
 {
-    public class ClientListenerStorage : ListenerStorageBase
+    /*public class ClientListenerStorage : ListenerStorageBase
     {
         public IDisposable AddListener<T>(Action<T> handler) where T : struct, NetworkMessage
         {
@@ -33,5 +33,5 @@ namespace Hatgame.Multiplayer
             }
             else return null;
         }
-    }
+    }*/
 }

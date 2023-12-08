@@ -1,8 +1,7 @@
-using Mirror;
 
 namespace Hatgame.Multiplayer
 {
-    public struct OnPlayerConnectedMessage : NetworkMessage
+    public struct OnPlayerConnectedMessage
     {
         public MatchmakingPlayer player;
     }
