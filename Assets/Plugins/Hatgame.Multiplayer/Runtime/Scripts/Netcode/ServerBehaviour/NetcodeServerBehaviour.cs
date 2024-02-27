@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Networking.Transport;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.Collections.LowLevel;
 using Unity.Jobs;
 using UnityEngine;
 using Hatgame.Common;
@@ -8,11 +11,13 @@ using System.Runtime.InteropServices;
 
 namespace Hatgame.Multiplayer
 {
-    public class ServerBehavior : NetworkBehaviorBase
+    public class NetcodeServerBehavior : NetcodeNetworkBehaviorBase, IServerBehavior
     {
-        private NativeList<NetworkConnection> _connections;
+        private INetworkConnectionsStorage<NetworkConnection> _networkConnectionsStorage = new NetcodeConnectionsStorage();
+
+        private NativeList<NetworkConnection> _netcodeConnections;
         private NativeArray<bool> _disconnected;
-        private NativeList<NetworkConnection> _newConnections;
+        private NativeList<NetworkConnection> _newNetcodeConnections;
 
         private UnsafeQueue<UnsafeNetworkReceivedMessage> _receivedMessages;
         private UnsafeQueue<UnsafeNetworkMessageToSend> _messagesToSend;
@@ -24,16 +29,16 @@ namespace Hatgame.Multiplayer
 
         private Action _onServerStarted;
         private Action _onServerShutdown;
-        private Action<NetworkConnection> _onNewConnectionEstablished;
-        private Action<NetworkConnection> _onDisconnected;
-        private Action<NetworkMessageRaw> _onMessageReceived;
+        private Action<INetworkConnection> _onNewConnectionEstablished;
+        private Action<INetworkConnection> _onClientDisconnected;
+        private Action<NetworkMessageRaw, INetworkConnection> _onMessageReceived;
 
+        public bool isActive => _isActive;
         public ushort port { get; private set; }
         public int maxConnections { get; private set; }
-        public int connectionsCount => _connections.Length;
-        public override bool isActive => _isActive;
+        public int connectionsCount => _netcodeConnections.Length;
 
-        public ServerBehavior() : base()
+        public NetcodeServerBehavior() : base()
         {
             _receivedMessages = new UnsafeQueue<UnsafeNetworkReceivedMessage>(Allocator.Persistent);
             _messagesToSend = new UnsafeQueue<UnsafeNetworkMessageToSend>(Allocator.Persistent);
@@ -71,19 +76,19 @@ namespace Hatgame.Multiplayer
             this.port = port;
             this.maxConnections = maxConnections;
 
-            if (_connections.IsCreated)
-                _connections.Dispose();
+            if (_netcodeConnections.IsCreated)
+                _netcodeConnections.Dispose();
 
             if (_disconnected.IsCreated)
                 _disconnected.Dispose();
 
-            _connections = new NativeList<NetworkConnection>(maxConnections, Allocator.Persistent);
+            _netcodeConnections = new NativeList<NetworkConnection>(maxConnections, Allocator.Persistent);
             _disconnected = new NativeArray<bool>(maxConnections, Allocator.Persistent);
 
-            if (_newConnections.IsCreated)
-                _newConnections.Dispose();
+            if (_newNetcodeConnections.IsCreated)
+                _newNetcodeConnections.Dispose();
 
-            _newConnections = new NativeList<NetworkConnection>(maxConnections, Allocator.Persistent);
+            _newNetcodeConnections = new NativeList<NetworkConnection>(maxConnections, Allocator.Persistent);
 
             _tickTimeCounter.Start(0, _timeBetweenTicks, true);
 
@@ -103,93 +108,103 @@ namespace Hatgame.Multiplayer
             _serverSendHandle.Complete();
             _serverJobHandle.Complete();
 
-            if (_newConnections.IsCreated)
-                _newConnections.Dispose();
+            if (_newNetcodeConnections.IsCreated)
+                _newNetcodeConnections.Dispose();
 
             if (_disconnected.IsCreated)
                 _disconnected.Dispose();
 
-            if (_connections.IsCreated)
-                _connections.Dispose();
+            if (_netcodeConnections.IsCreated)
+                _netcodeConnections.Dispose();
 
             _isActive = false;
 
             _onServerShutdown?.Invoke();
         }
 
-        public unsafe void Send(NetworkConnection connection, byte[] bytes)
+        public unsafe void Send(INetworkConnection connection, byte[] bytes, int numberOfBytes)
         {
             if (!isActive)
                 return;
-            
-            byte* bytesAsPtr = (byte*)Marshal.AllocHGlobal(bytes.Length);
-            Marshal.Copy(bytes, 0, (IntPtr)bytesAsPtr, bytes.Length);
 
-            var message = new UnsafeNetworkMessageToSend
+            if (_networkConnectionsStorage.TryGetConnectionData(connection, out var connectionData))
             {
-                bytes = bytesAsPtr,
-                numberOfBytes = bytes.Length,
-                connection = connection
-            };
-            _messagesToSend.Enqueue(message);
+                byte* bytesAsPtr = (byte*)Marshal.AllocHGlobal(numberOfBytes);
+                Marshal.Copy(bytes, 0, (IntPtr)bytesAsPtr, numberOfBytes);
+
+                var message = new UnsafeNetworkMessageToSend
+                {
+                    bytes = bytesAsPtr,
+                    numberOfBytes = numberOfBytes,
+                    connection = connectionData
+                };
+                _messagesToSend.Enqueue(message);
+            }
         }
 
-        public unsafe void SendToAll(byte[] bytes)
+        public unsafe void SendToAll(byte[] bytes, int numberOfBytes)
         {
             if (!isActive)
                 return;
 
-            byte* bytesAsPtr = (byte*)Marshal.AllocHGlobal(bytes.Length);
-            Marshal.Copy(bytes, 0, (IntPtr)bytesAsPtr, bytes.Length);
+            byte* bytesAsPtr = (byte*)Marshal.AllocHGlobal(numberOfBytes);
+            Marshal.Copy(bytes, 0, (IntPtr)bytesAsPtr, numberOfBytes);
 
             var message = new UnsafeNetworkMessageToSend
             {
                 bytes = bytesAsPtr,
-                numberOfBytes = bytes.Length,
+                numberOfBytes = numberOfBytes,
                 sendToAll = true
             };
             _messagesToSend.Enqueue(message);
         }
 
-        public IDisposable SubscribeOnMessageReceived(Action<NetworkMessageRaw> handler)
+        public IDisposable SubscribeOnMessageReceived(Action<NetworkMessageRaw, INetworkConnection> handler)
         {
             _onMessageReceived += handler;
 
             return new Unsubscriber(() => _onMessageReceived -= handler);
         }
 
-        public IDisposable SubscribeOnNewConnectionEstablished(Action<NetworkConnection> handler)
+        public IDisposable SubscribeOnNewConnectionEstablished(Action<INetworkConnection> handler)
         {
             _onNewConnectionEstablished += handler;
 
             return new Unsubscriber(() => _onNewConnectionEstablished -= handler);
         }
 
-        public IDisposable SubscribeOnDisconnected(Action<NetworkConnection> handler)
+        public IDisposable SubscribeOnClientDisconnected(Action<INetworkConnection> handler)
         {
-            _onDisconnected += handler;
+            _onClientDisconnected += handler;
 
-            return new Unsubscriber(() => _onDisconnected -= handler);
+            return new Unsubscriber(() => _onClientDisconnected -= handler);
         }
 
         protected override void TickHandle(float tickRemainder)
         {
             _serverJobHandle.Complete();
 
-            foreach (var connection in _newConnections)
-                _onNewConnectionEstablished?.Invoke(connection);
-
-            _newConnections.Clear();
-
-            foreach (var connection in _connections)
+            foreach (var netcodeConnection in _newNetcodeConnections)
             {
-                if (!connection.IsCreated)
-                    _onDisconnected?.Invoke(connection);
+                var connection = _networkConnectionsStorage.AddConnection(netcodeConnection);
+                _onNewConnectionEstablished?.Invoke(connection);
+            }
+
+            _newNetcodeConnections.Clear();
+
+            foreach (var netcodeConnection in _netcodeConnections)
+            {
+                if (!netcodeConnection.IsCreated && _networkConnectionsStorage.TryRemoveConnection(netcodeConnection, out var connection))                
+                    _onClientDisconnected?.Invoke(connection);                
             }
 
             while (_receivedMessages.TryDequeue(out var message))
             {
-                _onMessageReceived?.Invoke(Unsafe2RawMessage(message));
+                if (_networkConnectionsStorage.TryGetConnection(message.connection, out var connection))
+                {
+                    var rawMessage = Unsafe2RawMessage(message);
+                    _onMessageReceived?.Invoke(rawMessage, connection);
+                }
                 message.Dispose();
             }
 
@@ -199,7 +214,7 @@ namespace Hatgame.Multiplayer
                 {
                     driver = _driver.ToConcurrent(),
                     messagesToSend = _messagesToSend.AsReadOnly(),
-                    connections = _connections.AsDeferredJobArray(),
+                    connections = _netcodeConnections.AsDeferredJobArray(),
                     disconnected = _disconnected,
                 };
 
@@ -211,24 +226,22 @@ namespace Hatgame.Multiplayer
             var connectionJob = new ServerUpdateConnectionsJob
             {
                 driver = _driver,
-                connections = _connections,
-                newConnections = _newConnections,
+                connections = _netcodeConnections,
+                newConnections = _newNetcodeConnections,
                 disconnected = _disconnected,
             };
 
             var serverUpdateJob = new ServerUpdateJob()
             {
                 driver = _driver.ToConcurrent(),
-                connections = _connections,
+                connections = _netcodeConnections,
                 receivedMessages = _receivedMessages.AsParallelWriter(),
                 _disconnected = _disconnected,
             };
 
             _serverJobHandle = _driver.ScheduleUpdate();
             _serverJobHandle = connectionJob.Schedule(_serverJobHandle);
-            _serverJobHandle = serverUpdateJob.Schedule(_connections, 8, _serverJobHandle);
+            _serverJobHandle = serverUpdateJob.Schedule(_netcodeConnections, 8, _serverJobHandle);
         }
     }
-
-    
 }

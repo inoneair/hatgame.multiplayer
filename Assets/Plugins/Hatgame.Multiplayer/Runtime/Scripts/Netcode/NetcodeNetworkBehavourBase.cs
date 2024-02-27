@@ -6,7 +6,7 @@ using Hatgame.Common;
 
 namespace Hatgame.Multiplayer
 {
-    public abstract class NetworkBehaviorBase : IDisposable
+    public abstract class NetcodeNetworkBehaviorBase : IDisposable
     {
         protected NetworkDriver _driver;
 
@@ -30,9 +30,7 @@ namespace Hatgame.Multiplayer
             }
         }
 
-        public abstract bool isActive { get; }
-
-        public NetworkBehaviorBase()
+        public NetcodeNetworkBehaviorBase()
         {
             _driver = NetworkDriver.Create();
 
@@ -100,7 +98,7 @@ namespace Hatgame.Multiplayer
         protected unsafe NetworkMessageRaw Unsafe2RawMessage(UnsafeNetworkReceivedMessage unsafeMessage)
         {
             var arrayOfBytes = Ptr2NativeArray(unsafeMessage.bytes, unsafeMessage.numberOfBytes);
-            return new NetworkMessageRaw { bytes = arrayOfBytes, connection = unsafeMessage.connection };
+            return new NetworkMessageRaw { bytes = arrayOfBytes };
         }
     }
 }

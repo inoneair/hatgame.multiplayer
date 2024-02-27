@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace Hatgame.Multiplayer
 {
-    public class ClientBehavior : NetworkBehaviorBase
+    public class NetcodeClientBehavior : NetcodeNetworkBehaviorBase, IClientBehavior
     {
         private NativeReference<NetworkConnection> _connection;
         private NativeReference<bool> _isDisconnected;
@@ -22,13 +22,13 @@ namespace Hatgame.Multiplayer
         private Action _onDisconnected;
         private Action<NetworkMessageRaw> _onMessageReceived;
 
-        private bool _isActive;
+        private bool _isConnected;
 
         public ushort serverPort { get; private set; }
         public string serverAddress { get; private set; }
-        public override bool isActive => _isActive;
+        public bool isConnected => _isConnected;
 
-        public ClientBehavior() : base()
+        public NetcodeClientBehavior() : base()
         {
             _connection = new NativeReference<NetworkConnection>(default, Allocator.Persistent);
             _isDisconnected = new NativeReference<bool>(true, Allocator.Persistent);
@@ -38,7 +38,7 @@ namespace Hatgame.Multiplayer
 
         public void Connect(string address, ushort port, int tickRate = 60)
         {
-            if (isActive)
+            if (isConnected)
                 return;
 
             if (NetworkEndpoint.TryParse(address, port, out var endpoint))
@@ -54,7 +54,7 @@ namespace Hatgame.Multiplayer
                 TryToCreateEventFunctionsMediator();
                 MakeSubscriptionsToUnityEventFunctions();
 
-                _isActive = true;
+                _isConnected = true;
 
                 _onConnected?.Invoke();
             }
@@ -64,13 +64,13 @@ namespace Hatgame.Multiplayer
             }
         }
 
-        public unsafe void Send(byte[] bytes)
+        public unsafe void Send(byte[] bytes, int numberOfBytes)
         {
-            if (!isActive)
+            if (!isConnected)
                 return;
 
-            byte* bytesAsPtr = stackalloc byte[bytes.Length];
-            Marshal.Copy(bytes, 0, (IntPtr)bytesAsPtr, bytes.Length);
+            byte* bytesAsPtr = (byte*)Marshal.AllocHGlobal(numberOfBytes);
+            Marshal.Copy(bytes, 0, (IntPtr)bytesAsPtr, numberOfBytes);
 
             var message = new UnsafeNetworkMessageToSend
             {
@@ -83,7 +83,7 @@ namespace Hatgame.Multiplayer
 
         public void Disconnect()
         {
-            if (!isActive)
+            if (!isConnected)
                 return;
 
             if (_tickTimeCounter.isActive)
@@ -100,7 +100,7 @@ namespace Hatgame.Multiplayer
             _clientSendHandle.Complete();
             _clientJobHandle.Complete();
 
-            _isActive = false;
+            _isConnected = false;
 
             _onDisconnected?.Invoke();
         }
